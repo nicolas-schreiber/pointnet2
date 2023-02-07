@@ -1,9 +1,11 @@
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
 ''' Furthest point sampling
 Original author: Haoqiang Fan
 Modified by Charles R. Qi
 All Rights Reserved. 2017. 
 '''
-import tensorflow as tf
 from tensorflow.python.framework import ops
 import sys
 import os
@@ -61,29 +63,29 @@ if __name__=='__main__':
     import numpy as np
     np.random.seed(100)
     triangles=np.random.rand(1,5,3,3).astype('float32')
-    with tf.device('/gpu:1'):
+    with tf.device('/gpu:0'):
         inp=tf.constant(triangles)
         tria=inp[:,:,0,:]
         trib=inp[:,:,1,:]
         tric=inp[:,:,2,:]
-        areas=tf.sqrt(tf.reduce_sum(tf.cross(trib-tria,tric-tria)**2,2)+1e-9)
-        randomnumbers=tf.random_uniform((1,8192))
+        areas=tf.sqrt(tf.reduce_sum(tf.linalg.cross(trib-tria,tric-tria)**2,2)+1e-9)
+        randomnumbers=tf.random.uniform((1,8192))
         triids=prob_sample(areas,randomnumbers)
         tria_sample=gather_point(tria,triids)
         trib_sample=gather_point(trib,triids)
         tric_sample=gather_point(tric,triids)
-        us=tf.random_uniform((1,8192))
-        vs=tf.random_uniform((1,8192))
+        us=tf.random.uniform((1,8192))
+        vs=tf.random.uniform((1,8192))
         uplusv=1-tf.abs(us+vs-1)
         uminusv=us-vs
         us=(uplusv+uminusv)*0.5
         vs=(uplusv-uminusv)*0.5
         pt_sample=tria_sample+(trib_sample-tria_sample)*tf.expand_dims(us,-1)+(tric_sample-tria_sample)*tf.expand_dims(vs,-1)
-        print 'pt_sample: ', pt_sample
+        print('pt_sample: ', pt_sample)
         reduced_sample=gather_point(pt_sample,farthest_point_sample(1024,pt_sample))
-        print reduced_sample
+        print(reduced_sample)
     with tf.Session('') as sess:
         ret=sess.run(reduced_sample)
-    print ret.shape,ret.dtype
-    import cPickle as pickle
+    print(ret.shape,ret.dtype)
+    import pickle
     pickle.dump(ret,open('1.pkl','wb'),-1)
